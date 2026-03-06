@@ -1,6 +1,8 @@
 from dotenv import load_dotenv
 from os import getenv
 import vt
+import requests
+import json
 
 import cv2
 import numpy as np
@@ -8,12 +10,22 @@ import pyzbar.pyzbar as pyzbar
 
 load_dotenv()
 
-vt_apikey = getenv('VIRUSTOTAL_API_KEY')
-if not vt_apikey:
+# print("Select API service to check:")
+# print("1. SafeScan")
+# print("2. VirusTotal")
+# print("3. Both")
+# MODE = input("> ").strip()
+
+VT_APIKEY = getenv('VIRUSTOTAL_API_KEY')
+GOOGLE_APIKEY = getenv('SAFEBROWSING_API_KEY')
+
+if not VT_APIKEY:
+    raise ValueError("VirusTotal API key not found in environment.")
+if not GOOGLE_APIKEY:
     raise ValueError("VirusTotal API key not found in environment.")
 
 def vt_scan(code):
-    with vt.Client(vt_apikey) as client:
+    with vt.Client(VT_APIKEY) as client:
         #url_id = vt.url_id(code)
         #url = client.get_object("/urls/{}", url_id)
         
@@ -23,7 +35,27 @@ def vt_scan(code):
     return analysis.stats #url.last_analysis_stats 
 
 def google_scan(code):
-    pass
+
+    url = f"https://safebrowsing.googleapis.com/v4/threatMatches:find?key={GOOGLE_APIKEY}"
+
+    payload = {
+        "client": {
+            "clientId": "demo-app",
+            "clientVersion": "1.0"
+        },
+        "threatInfo": {
+            "threatTypes": ["MALWARE", "SOCIAL_ENGINEERING"],
+            "platformTypes": ["ANY_PLATFORM"],
+            "threatEntryTypes": ["URL"],
+            "threatEntries": [
+                {"url": "http://malware.testing.google.test/testing/malware/"}
+            ]
+        }
+    }
+
+    response = requests.post(url, json=payload)
+
+    print(json.dumps(response.json(), indent=2))
 
 # test on one qr code for now
 # acess the camera
